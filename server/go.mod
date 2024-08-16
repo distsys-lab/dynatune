@@ -1,8 +1,6 @@
 module go.etcd.io/etcd/server/v3
 
-go 1.21
-
-replace go.etcd.io/raft/v3 => /home/koya/Develop/adaptive-raft/raft
+go 1.21.3
 
 require (
 	github.com/coreos/go-semver v0.3.1
@@ -11,7 +9,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
-	github.com/golang/protobuf v1.5.3
+	github.com/golang/protobuf v1.5.4
 	github.com/google/btree v1.1.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
@@ -21,7 +19,7 @@ require (
 	github.com/prometheus/client_model v0.5.0
 	github.com/soheilhy/cmux v0.1.5
 	github.com/spf13/cobra v1.7.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20201229170055-e5319fda7802
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2
 	go.etcd.io/bbolt v1.3.7
@@ -30,7 +28,7 @@ require (
 	go.etcd.io/etcd/client/v2 v2.306.0-alpha.0
 	go.etcd.io/etcd/client/v3 v3.6.0-alpha.0
 	go.etcd.io/etcd/pkg/v3 v3.6.0-alpha.0
-	go.etcd.io/raft/v3 v3.0.0-20221201111702-eaa6808e1f7a
+	go.etcd.io/raft/v3 v3.6.0-alpha.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.45.0
 	go.opentelemetry.io/otel v1.19.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.19.0
@@ -42,7 +40,7 @@ require (
 	golang.org/x/time v0.3.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20230920204549-e6e6cdab5c13
 	google.golang.org/grpc v1.58.3
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.34.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -81,6 +79,7 @@ replace (
 	go.etcd.io/etcd/client/v2 => ./../client/internal/v2
 	go.etcd.io/etcd/client/v3 => ../client/v3
 	go.etcd.io/etcd/pkg/v3 => ../pkg
+	go.etcd.io/raft/v3 => github.com/distsys-lab/raft/v3 v3.0.0-20240816082917-4aa4999931bb
 )
 
 // Bad imports are sometimes causing attempts to pull that code.

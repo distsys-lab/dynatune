@@ -1,6 +1,6 @@
 module go.etcd.io/etcd/v3
 
-go 1.21
+go 1.21.3
 
 replace (
 	go.etcd.io/etcd/api/v3 => ./api
@@ -12,7 +12,7 @@ replace (
 	go.etcd.io/etcd/pkg/v3 => ./pkg
 	go.etcd.io/etcd/server/v3 => ./server
 	go.etcd.io/etcd/tests/v3 => ./tests
-	go.etcd.io/raft/v3 => /home/koya/Develop/adaptive-raft/raft
+	go.etcd.io/raft/v3 => github.com/distsys-lab/raft/v3 v3.0.0-20240816082917-4aa4999931bb
 )
 
 require (
@@ -21,7 +21,7 @@ require (
 	github.com/coreos/go-semver v0.3.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/spf13/cobra v1.7.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	go.etcd.io/bbolt v1.3.7
 	go.etcd.io/etcd/api/v3 v3.6.0-alpha.0
 	go.etcd.io/etcd/client/pkg/v3 v3.6.0-alpha.0
@@ -32,11 +32,11 @@ require (
 	go.etcd.io/etcd/pkg/v3 v3.6.0-alpha.0
 	go.etcd.io/etcd/server/v3 v3.6.0-alpha.0
 	go.etcd.io/etcd/tests/v3 v3.6.0-alpha.0
-	go.etcd.io/raft/v3 v3.0.0-20221201111702-eaa6808e1f7a
+	go.etcd.io/raft/v3 v3.6.0-alpha.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/time v0.3.0
 	google.golang.org/grpc v1.58.3
-	google.golang.org/protobuf v1.31.0
+	google.golang.org/protobuf v1.34.0
 )
 
 require (
@@ -52,7 +52,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect

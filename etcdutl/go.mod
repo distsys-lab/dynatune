@@ -1,6 +1,6 @@
 module go.etcd.io/etcd/etcdutl/v3
 
-go 1.21
+go 1.21.3
 
 replace (
 	go.etcd.io/etcd/api/v3 => ../api
@@ -30,7 +30,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.6.0-alpha.0
 	go.etcd.io/etcd/pkg/v3 v3.6.0-alpha.0
 	go.etcd.io/etcd/server/v3 v3.6.0-alpha.0
-	go.etcd.io/raft/v3 v3.0.0-20221201111702-eaa6808e1f7a
+	go.etcd.io/raft/v3 v3.6.0-alpha.0
 	go.uber.org/zap v1.26.0
 )
 
@@ -42,7 +42,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
-	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -71,6 +71,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20230920204549-e6e6cdab5c13 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231009173412-8bfb1ae86b6c // indirect
 	google.golang.org/grpc v1.58.3 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.34.0 // indirect
 	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
 )

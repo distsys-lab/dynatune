@@ -3,7 +3,7 @@ include tests/robustness/makefile.mk
 
 .PHONY: build
 build:
-	GO_BUILD_FLAGS="${GO_BUILD_FLAGS} -v -mod=readonly" ./scripts/build.sh
+	GO_BUILD_FLAGS="${GO_BUILD_FLAGS} -v" ./scripts/build.sh
 
 .PHONY: tools
 tools:
