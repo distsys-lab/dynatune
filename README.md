@@ -1,196 +1,89 @@
-# etcd
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/etcd-io/etcd?style=flat-square)](https://goreportcard.com/report/github.com/etcd-io/etcd)
-[![Coverage](https://codecov.io/gh/etcd-io/etcd/branch/main/graph/badge.svg)](https://app.codecov.io/gh/etcd-io/etcd/tree/main)
-[![Tests](https://github.com/etcd-io/etcd/actions/workflows/tests.yaml/badge.svg)](https://github.com/etcd-io/etcd/actions/workflows/tests.yaml)
-[![codeql-analysis](https://github.com/etcd-io/etcd/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/etcd-io/etcd/actions/workflows/codeql-analysis.yml)
-[![Docs](https://img.shields.io/badge/docs-latest-green.svg)](https://etcd.io/docs)
-[![Godoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](https://godoc.org/github.com/etcd-io/etcd)
-[![Releases](https://img.shields.io/github/release/etcd-io/etcd/all.svg?style=flat-square)](https://github.com/etcd-io/etcd/releases)
-[![LICENSE](https://img.shields.io/github/license/etcd-io/etcd.svg?style=flat-square)](https://github.com/etcd-io/etcd/blob/main/LICENSE)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/etcd-io/etcd/badge)](https://api.securityscorecards.dev/projects/github.com/etcd-io/etcd)
+# Dynatune
 
-**Note**: The `main` branch may be in an *unstable or even broken state* during development. For stable versions, see [releases][github-release].
+Dynatune is a fork of [this commit](https://github.com/etcd-io/etcd/tree/3eca40d) of etcd, a widely-used distributed key-value store that leverages the Raft consensus algorithm for reliable coordination and fault tolerance.
 
-![etcd Logo](logos/etcd-horizontal-color.svg)
+Dynatune introduces dynamic election parameter optimization based on real-time network measurements, significantly reducing leader recovery time and ensuring availability.
 
-etcd is a distributed reliable key-value store for the most critical data of a distributed system, with a focus on being:
+We are grateful to the etcd team for their valuable contributions to the open-source community, which made Dynatune possible.
 
-* *Simple*: well-defined, user-facing API (gRPC)
-* *Secure*: automatic TLS with optional client cert authentication
-* *Fast*: benchmarked 10,000 writes/sec
-* *Reliable*: properly distributed using Raft
+---
 
-etcd is written in Go and uses the [Raft][] consensus algorithm to manage a highly-available replicated log.
+## Features and Modifications
 
-etcd is used [in production by many companies](./ADOPTERS.md), and the development team stands behind it in critical deployment scenarios, where etcd is frequently teamed with applications such as [Kubernetes][k8s], [locksmith][], [vulcand][], [Doorman][], and many others. Reliability is further ensured by rigorous [**robustness testing**](https://github.com/etcd-io/etcd/tree/main/tests/robustness).
+### Dynamic Election Parameter Optimization
+Dynatune dynamically optimizes Raft's election timeout and heartbeat interval by measuring key network metrics such as round-trip time (RTT) and packet loss in real-time. These metrics are collected from heartbeat communication between nodes, enabling precise adjustments to these parameters for optimal performance and availability.
 
-See [etcdctl][etcdctl] for a simple command line client.
+### UDP-based Heartbeat Communication
+In the original etcd implementation, all Raft communications use TCP. Dynatune introduces a new port (**2381**) dedicated to UDP-based heartbeat communication. The official etcd ports are:
+- **2379**: Client requests
+- **2380**: Peer communication
+- **2381**: UDP-based heartbeat communication (added by Dynatune)
 
-![etcd reliability is important](logos/etcd-xkcd-2347.png)
+UDP is used for heartbeat communication to ensure accurate network measurements, which are critical for optimizing election parameters.
 
-<sub>Original image credited to  xkcd.com/2347, alterations by Josh Berkus.</sub>
+### New Runtime Arguments
+Dynatune extends etcd's runtime arguments to enable more precise control over network measurement and parameter optimization. The following arguments are supported:
 
-[raft]: https://raft.github.io/
-[k8s]: http://kubernetes.io/
-[doorman]: https://github.com/youtube/doorman
-[locksmith]: https://github.com/coreos/locksmith
-[vulcand]: https://github.com/vulcand/vulcand
-[etcdctl]: https://github.com/etcd-io/etcd/tree/main/etcdctl
+| Argument                          | Description                                                                                                            | Default Value |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------- |
+| `--listen-peer-udp-url`           | Specifies the address for UDP-based heartbeat communication.                                                           | None          |
+| `--max-election-metrics-capacity` | Sets the maximum size of the list for storing network metrics.                                                         | 1000          |
+| `--min-election-metrics-capacity` | Sets the minimum size of the list for storing network metrics. Optimization will not start until this size is reached. | 10            |
+| `--election-safety-factor`        | Specifies the safety factor for election timeout calculations.                                                         | 2             |
+| `--heartbeat-reachability-goal`   | Sets the target reachability for heartbeats (range: 0-1).                                                              | 0.999         |
 
-## Maintainers
+The `--election-timeout` and `--heartbeat-interval` parameters remain available and are not removed in Dynatune. Until Dynatune's optimization process begins, the values of these parameters will be used. If these parameters are not explicitly specified, their default values in etcd—1000 ms for `--election-timeout` and 100 ms for `--heartbeat-interval`—will be applied. Once the optimization process starts, these parameters are dynamically adjusted by Dynatune to their optimal values based on real-time network conditions.
 
-[MAINTAINERS](MAINTAINERS) strive to shape an inclusive open source project culture where users are heard and contributors feel respected and empowered. MAINTAINERS maintain productive relationships across different companies and disciplines. Read more about [MAINTAINERS role and responsibilities](Documentation/contributor-guide/community-membership.md#maintainers).
+---
 
-## Getting started
+## Prerequisites
 
-### Getting etcd
+Dynatune shares the same prerequisites as [etcd v3.5](https://etcd.io/docs/v3.5/). Please ensure the following requirements are met:
 
-The easiest way to get etcd is to use one of the pre-built release binaries which are available for OSX, Linux, Windows, and Docker on the [release page][github-release].
+- **Operating System**: Linux or macOS (Ubuntu 20.04+ recommended)
+- **Go**: Version 1.16 or later (1.19+ recommended)
+- **Ports**: Ensure that the necessary ports are open and accessible:
+  - **2379**: Client requests
+  - **2380**: Peer communication
+  - **2381**: UDP-based heartbeat communication (added by Dynatune)
 
-For more installation guides, please check out [play.etcd.io](http://play.etcd.io) and [operating etcd](https://etcd.io/docs/latest/op-guide).
+For more details, refer to the [etcd documentation](https://etcd.io/docs/v3.5/).
 
-[github-release]: https://github.com/etcd-io/etcd/releases
+---
 
-### Running etcd
+## Quick Start
 
-First start a single-member cluster of etcd.
+To try Dynatune, follow these steps:
 
-If etcd is installed using the [pre-built release binaries][github-release], run it from the installation location as below:
+1. **Clone the repository**:
+    ```bash
+    git clone https://github.com/distsys-lab/dynatune.git
+    cd dynatune
+    ```
 
-```bash
-/tmp/etcd-download-test/etcd
-```
+2. **Build the project**:
+    ```bash
+    make build
+    ```
 
-The etcd command can be simply run as such if it is moved to the system path as below:
+3. **Run Dynatune (example)**:
+    ```bash
+    ./dynatune       --name node1       --data-dir /path/to/data-dir       --listen-peer-urls http://0.0.0.0:2380       --listen-client-urls http://0.0.0.0:2379       --advertise-client-urls http://<node1-ip>:2379       --initial-cluster node1=http://<node1-ip>:2380,node2=http://<node2-ip>:2380,node3=http://<node3-ip>:2380       --initial-cluster-state new       --initial-cluster-token dynatune-cluster       --election-timeout 1000       --heartbeat-interval 100       --listen-peer-udp-url 0.0.0.0:2381       --max-election-metrics-capacity 1000       --min-election-metrics-capacity 10       --election-safety-factor 2       --heartbeat-reachability-goal 0.99       --log-level debug
+    ```
 
-```bash
-mv /tmp/etcd-download-test/etcd /usr/local/bin/
-etcd
-```
+---
 
-This will bring up etcd listening on port 2379 for client communication and on port 2380 for server-to-server communication.
+## Support and Questions
 
-Next, let's set a single key, and then retrieve it:
+If you have any questions or encounter issues while using Dynatune, please do the following:
+- If the README does not answer your question, [open an issue](https://github.com/distsys-lab/dynatune/issues) on the GitHub repository.
+- Alternatively, you can contact the committers directly via email.
 
-```bash
-etcdctl put mykey "this is awesome"
-etcdctl get mykey
-```
+---
 
-etcd is now running and serving client requests. For more, please check out:
+## License
 
-* [Interactive etcd playground](http://play.etcd.io)
-* [Animated quick demo](https://etcd.io/docs/latest/demo)
+Dynatune is licensed under the [Apache 2.0 License](LICENSE), the same as etcd. See the LICENSE file for more details.
 
-### etcd TCP ports
-
-The [official etcd ports][iana-ports] are 2379 for client requests, and 2380 for peer communication.
-
-[iana-ports]: http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.txt
-
-### Running a local etcd cluster
-
-First install [goreman](https://github.com/mattn/goreman), which manages Procfile-based applications.
-
-Our [Procfile script](./Procfile) will set up a local example cluster. Start it with:
-
-```bash
-goreman start
-```
-
-This will bring up 3 etcd members `infra1`, `infra2` and `infra3` and optionally etcd `grpc-proxy`, which runs locally and composes a cluster.
-
-Every cluster member and proxy accepts key value reads and key value writes.
-
-Follow the comments in [Procfile script](./Procfile) to add a learner node to the cluster.
-
-### Install etcd client v3
-
-```bash
-go get go.etcd.io/etcd/client/v3
-```
-
-### Next steps
-
-Now it's time to dig into the full etcd API and other guides.
-
-* Read the full [documentation].
-* Review etcd [frequently asked questions].
-* Explore the full gRPC [API].
-* Set up a [multi-machine cluster][clustering].
-* Learn the [config format, env variables and flags][configuration].
-* Find [language bindings and tools][integrations].
-* Use TLS to [secure an etcd cluster][security].
-* [Tune etcd][tuning].
-
-[documentation]: https://etcd.io/docs/latest
-[api]: https://etcd.io/docs/latest/learning/api
-[clustering]: https://etcd.io/docs/latest/op-guide/clustering
-[configuration]: https://etcd.io/docs/latest/op-guide/configuration
-[integrations]: https://etcd.io/docs/latest/integrations
-[security]: https://etcd.io/docs/latest/op-guide/security
-[tuning]: https://etcd.io/docs/latest/tuning
-
-## Contact
-
-* Email: [etcd-dev](https://groups.google.com/g/etcd-dev)
-* Slack: [#etcd](https://kubernetes.slack.com/messages/C3HD8ARJ5/details/) channel on Kubernetes ([get an invite](http://slack.kubernetes.io/))
-* [Community meetings](#community-meetings)
-
-### Community meetings
-
-etcd contributors and maintainers meet every two weeks at 11:00 AM (USA Pacific) on Thursday.
-
-An initial agenda will be posted to the [shared Google docs][shared-meeting-notes] a day before each meeting, and everyone is welcome to suggest additional topics or other agendas.
-
-Meeting recordings are uploaded to official etcd [YouTube channel].
-
-Get calendar invitation by joining [etcd-dev](https://groups.google.com/g/etcd-dev) mailing group.
-
-Join CNCF-funded Zoom channel: [zoom.us/my/cncfetcdproject](https://zoom.us/my/cncfetcdproject)
-
-[shared-meeting-notes]: https://docs.google.com/document/d/16XEGyPBisZvmmoIHSZzv__LoyOeluC5a4x353CX0SIM/edit
-[YouTube channel]: https://www.youtube.com/channel/UC7tUWR24I5AR9NMsG-NYBlg
-
-## Contributing
-
-See [CONTRIBUTING](CONTRIBUTING.md) for details on setting up your development environment, submitting patches and the contribution workflow.
-
-Please refer to [community-membership.md](Documentation/contributor-guide/community-membership.md#member) for information on becoming an etcd project member.  We welcome and look forward to your contributions to the project!
-
-Please also refer to [roadmap](Documentation/contributor-guide/roadmap.md) to get more details on the priorities for the next few major or minor releases.
-
-## Reporting bugs
-
-See [reporting bugs](https://github.com/etcd-io/etcd/blob/main/Documentation/contributor-guide/reporting_bugs.md) for details about reporting any issues. Before opening an issue please check it is not covered in our [frequently asked questions].
-
-[frequently asked questions]: https://etcd.io/docs/latest/faq
-
-## Reporting a security vulnerability
-
-See [security disclosure and release process](security/README.md) for details on how to report a security vulnerability and how the etcd team manages it.
-
-## Issue and PR management
-
-See [issue triage guidelines](https://github.com/etcd-io/etcd/blob/main/Documentation/contributor-guide/triage_issues.md) for details on how issues are managed.
-
-See [PR management](https://github.com/etcd-io/etcd/blob/main/Documentation/contributor-guide/triage_prs.md) for guidelines on how pull requests are managed.
-
-## etcd Emeritus Maintainers
-
-These emeritus maintainers dedicated a part of their career to etcd and reviewed code, triaged bugs and pushed the project forward over a substantial period of time. Their contribution is greatly appreciated.
-
-* Fanmin Shi
-* Anthony Romano
-* Brandon Philips
-* Joe Betz
-* Gyuho Lee
-* Jingyi Hu
-* Xiang Li
-* Ben Darnell
-* Sam Batschelet
-
-### License
-
-etcd is under the Apache 2.0 license. See the [LICENSE](LICENSE) file for details.
+---
