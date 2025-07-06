@@ -79,6 +79,7 @@ const (
 
 	DefaultListenPeerURLs   = "http://localhost:2380"
 	DefaultListenClientURLs = "http://localhost:2379"
+	DefaultListenPeerUdpURL = "0.0.0.0:2381"
 
 	DefaultLogOutput = "default"
 	JournalLogOutput = "systemd/journal"
@@ -171,6 +172,13 @@ type Config struct {
 	TickMs     uint `json:"heartbeat-interval"`
 	ElectionMs uint `json:"election-timeout"`
 
+    MaxElectionMetricsCapacity int `json:"max-election-metrics-capacity"`
+    MinElectionMetricsCapacity int `json:"min-election-metrics-capacity"`
+    ElectionSafetyFactor int `json:"election-safety-factor"`
+    HeartbeatReachabilityGoal float64 `json:"heartbeat-reachability-goal"`
+	K int64 `json:"heartbeat-k"`
+    OptimizeHeartbeatInterval bool `json:"optimize-heartbeat-interval"`
+
 	// InitialElectionTickAdvance is true, then local member fast-forwards
 	// election ticks to speed up "initial" leader election trigger. This
 	// benefits the case of larger election ticks. For instance, cross
@@ -216,6 +224,7 @@ type Config struct {
 
 	ListenPeerUrls, ListenClientUrls, ListenClientHttpUrls []url.URL
 	AdvertisePeerUrls, AdvertiseClientUrls                 []url.URL
+	ListenPeerUdpUrl string `json:"listen-peer-udp-url"`
 	ClientTLSInfo                                          transport.TLSInfo
 	ClientAutoTLS                                          bool
 	PeerTLSInfo                                            transport.TLSInfo
@@ -495,8 +504,17 @@ func NewConfig() *Config {
 
 		TickMs:                     100,
 		ElectionMs:                 1000,
+
+		MaxElectionMetricsCapacity: 1000,
+        MinElectionMetricsCapacity: 100,
+        ElectionSafetyFactor: 3,
+        HeartbeatReachabilityGoal:  0.99,
+		K:                         5,
+        OptimizeHeartbeatInterval: true,
+
 		InitialElectionTickAdvance: true,
 
+		ListenPeerUdpUrl:    DefaultListenPeerUdpURL,
 		ListenPeerUrls:      []url.URL{*lpurl},
 		ListenClientUrls:    []url.URL{*lcurl},
 		AdvertisePeerUrls:   []url.URL{*apurl},
@@ -567,6 +585,7 @@ func (cfg *Config) AddFlags(fs *flag.FlagSet) {
 		flags.NewUniqueURLsWithExceptions(DefaultListenClientURLs, ""), "listen-client-urls",
 		"List of URLs to listen on for client grpc traffic and http as long as --listen-client-http-urls is not specified.",
 	)
+	fs.StringVar(&cfg.ListenPeerUdpUrl, "listen-peer-udp-url", cfg.ListenPeerUdpUrl, "URL to listen on for peer UDP traffic.")
 	fs.Var(
 		flags.NewUniqueURLsWithExceptions("", ""), "listen-client-http-urls",
 		"List of URLs to listen on for http only client traffic. Enabling this flag removes http services from --listen-client-urls.",
@@ -582,6 +601,12 @@ func (cfg *Config) AddFlags(fs *flag.FlagSet) {
 	fs.Uint64Var(&cfg.SnapshotCount, "snapshot-count", cfg.SnapshotCount, "Number of committed transactions to trigger a snapshot to disk.")
 	fs.UintVar(&cfg.TickMs, "heartbeat-interval", cfg.TickMs, "Time (in milliseconds) of a heartbeat interval.")
 	fs.UintVar(&cfg.ElectionMs, "election-timeout", cfg.ElectionMs, "Time (in milliseconds) for an election to timeout.")
+    fs.IntVar(&cfg.MaxElectionMetricsCapacity, "max-election-metrics-capacity", cfg.MaxElectionMetricsCapacity, "Maximum capacity of election metrics")
+    fs.IntVar(&cfg.MinElectionMetricsCapacity, "min-election-metrics-capacity", cfg.MinElectionMetricsCapacity, "Minimum capacity of election metrics")
+    fs.IntVar(&cfg.ElectionSafetyFactor, "election-safety-factor", cfg.ElectionSafetyFactor, "Multiplier for standard deviation in RTT to increase election timeout.")
+	fs.Float64Var(&cfg.HeartbeatReachabilityGoal, "heartbeat-reachability-goal", cfg.HeartbeatReachabilityGoal, "Goal for heartbeat reachability as a percentage.")
+	fs.Int64Var(&cfg.K, "heartbeat-k", cfg.K, "Fixed value of K for heartbeat interval when not optimizing")
+	fs.BoolVar(&cfg.OptimizeHeartbeatInterval, "optimize-heartbeat-interval", cfg.OptimizeHeartbeatInterval, "Whether to optimize heartbeat interval")
 	fs.BoolVar(&cfg.InitialElectionTickAdvance, "initial-election-tick-advance", cfg.InitialElectionTickAdvance, "Whether to fast-forward initial election ticks on boot for faster election.")
 	fs.Int64Var(&cfg.QuotaBackendBytes, "quota-backend-bytes", cfg.QuotaBackendBytes, "Raise alarms when backend size exceeds the given quota. 0 means use the default quota.")
 	fs.StringVar(&cfg.BackendFreelistType, "backend-bbolt-freelist-type", cfg.BackendFreelistType, "BackendFreelistType specifies the type of freelist that boltdb backend uses(array and map are supported types)")
@@ -1132,7 +1157,8 @@ func (cfg Config) InitialClusterFromName(name string) (ret string) {
 }
 
 func (cfg Config) IsNewCluster() bool { return cfg.ClusterState == ClusterStateFlagNew }
-func (cfg Config) ElectionTicks() int { return int(cfg.ElectionMs / cfg.TickMs) }
+//func (cfg Config) ElectionTicks() int { return int(cfg.ElectionMs / cfg.TickMs) }
+func (cfg Config) ElectionTicks() int { return int(cfg.ElectionMs) }
 
 func (cfg Config) V2DeprecationEffective() config.V2DeprecationEnum {
 	if cfg.V2Deprecation == "" {

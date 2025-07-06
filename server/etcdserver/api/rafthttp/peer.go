@@ -16,6 +16,8 @@ package rafthttp
 
 import (
 	"context"
+	"net"
+	"fmt"
 	"sync"
 	"time"
 
@@ -66,6 +68,7 @@ type Peer interface {
 	// When it fails to send message out, it will report the status to underlying
 	// raft.
 	send(m raftpb.Message)
+	sendViaUDP(m raftpb.Message) error
 
 	// sendSnap sends the merged snapshot message to the remote peer. Its behavior
 	// is similar to send.
@@ -263,6 +266,40 @@ func (p *peer) send(m raftpb.Message) {
 		}
 		sentFailures.WithLabelValues(types.ID(m.To).String()).Inc()
 	}
+}
+
+func (p *peer) sendViaUDP(m raftpb.Message) error {
+    tcpURL := p.picker.pick()
+
+    host, _, err := net.SplitHostPort(tcpURL.Host)
+    if err != nil {
+        p.lg.Error("error parsing host from URL", zap.String("url", tcpURL.String()), zap.Error(err))
+        return err
+    }
+    
+    addr := fmt.Sprintf("%s:%d", host, 2381)
+    conn, err := net.Dial("udp", addr)
+    if err != nil {
+        p.lg.Error("error dialing UDP", zap.String("address", addr), zap.Error(err))
+        return err
+    }
+    defer conn.Close()
+    
+    data, err := m.Marshal()
+    if err != nil {
+        p.lg.Error("error marshaling message for UDP send", zap.Error(err))
+        return err
+    }
+    
+    _, err = conn.Write(data)
+    if err != nil {
+        p.lg.Error("error sending data via UDP", zap.String("address", addr), zap.Error(err))
+        return err
+    }
+
+	p.lg.Debug("successfully sent message via UDP", zap.String("address", addr), zap.String("message-type", m.Type.String()))
+
+    return nil
 }
 
 func (p *peer) sendSnap(m snap.Message) {

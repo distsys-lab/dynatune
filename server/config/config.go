@@ -43,6 +43,7 @@ type ServerConfig struct {
 
 	ClientURLs types.URLs
 	PeerURLs   types.URLs
+	ListenUdpURL string
 	DataDir    string
 	// DedicatedWALDir config will make the etcd to write the WAL to the WALDir
 	// rather than the dataDir/member/wal.
@@ -82,6 +83,13 @@ type ServerConfig struct {
 
 	TickMs        uint
 	ElectionTicks int
+
+	MaxElectionMetricsCapacity int 
+    MinElectionMetricsCapacity int
+	ElectionSafetyFactor int
+    HeartbeatReachabilityGoal float64
+	K                           int64
+	OptimizeHeartbeatInterval   bool
 
 	// InitialElectionTickAdvance is true, then local member fast-forwards
 	// election ticks to speed up "initial" leader election trigger. This

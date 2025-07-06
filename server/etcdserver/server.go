@@ -418,6 +418,7 @@ func NewServer(cfg config.ServerConfig) (srv *EtcdServer, err error) {
 		ServerStats: sstats,
 		LeaderStats: lstats,
 		ErrorC:      srv.errorc,
+		ListenUdpAddr: cfg.ListenUdpURL,
 	}
 	if err = tr.Start(); err != nil {
 		return nil, err

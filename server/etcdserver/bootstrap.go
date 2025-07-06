@@ -23,6 +23,8 @@ import (
 	"os"
 	"strings"
 	"time"
+	"reflect"
+	"log"
 
 	"github.com/coreos/go-semver/semver"
 	"github.com/dustin/go-humanize"
@@ -516,17 +518,47 @@ func bootstrapRaftFromWAL(cfg config.ServerConfig, bwal *bootstrappedWAL) *boots
 }
 
 func raftConfig(cfg config.ServerConfig, id uint64, s *raft.MemoryStorage) *raft.Config {
-	return &raft.Config{
-		ID:              id,
-		ElectionTick:    cfg.ElectionTicks,
-		HeartbeatTick:   1,
-		Storage:         s,
-		MaxSizePerMsg:   maxSizePerMsg,
-		MaxInflightMsgs: maxInflightMsgs,
-		CheckQuorum:     true,
-		PreVote:         cfg.PreVote,
-		Logger:          NewRaftLoggerZap(cfg.Logger.Named("raft")),
-	}
+    conf := &raft.Config{
+        ID:              id,
+        ElectionTick:    cfg.ElectionTicks,
+        HeartbeatTick:   int(cfg.TickMs),
+        Storage:         s,
+        MaxSizePerMsg:   maxSizePerMsg,
+        MaxInflightMsgs: maxInflightMsgs,
+        CheckQuorum:     true,
+        PreVote:         cfg.PreVote,
+        Logger:          NewRaftLoggerZap(cfg.Logger.Named("raft")),
+    }
+
+	// TODO: Future Improvement
+	// Ideally, MaxElectionMetricsCapacity, MinElectionMetricsCapacity, and HeartbeatReachabilityGoal should be set directly within the raft.Config struct initialization.
+	// Due to an unidentified issue preventing this direct approach, we initialize these fields separately after the struct creation as a standalone solution.
+	// This workaround ensures functionality, but future revisions should aim to consolidate configuration initialization for clarity and efficiency.
+    confVal := reflect.ValueOf(conf).Elem()
+    confType := confVal.Type()
+
+    setFieldIfExist(confVal, confType, "MaxElectionMetricsCapacity", cfg.MaxElectionMetricsCapacity)
+    setFieldIfExist(confVal, confType, "MinElectionMetricsCapacity", cfg.MinElectionMetricsCapacity)
+    setFieldIfExist(confVal, confType, "ElectionSafetyFactor", cfg.ElectionSafetyFactor)
+    setFieldIfExist(confVal, confType, "HeartbeatReachabilityGoal", cfg.HeartbeatReachabilityGoal)
+	setFieldIfExist(confVal, confType, "K", cfg.K)
+    setFieldIfExist(confVal, confType, "OptimizeHeartbeatInterval", cfg.OptimizeHeartbeatInterval)
+
+    return conf
+}
+
+func setFieldIfExist(v reflect.Value, t reflect.Type, fieldName string, value interface{}) {
+    fieldVal := v.FieldByName(fieldName)
+    if fieldVal.IsValid() && fieldVal.CanSet() {
+        val := reflect.ValueOf(value)
+        if val.Type().AssignableTo(fieldVal.Type()) {
+            fieldVal.Set(val)
+        } else {
+            log.Printf("Type mismatch for field %s", fieldName)
+        }
+    } else {
+        log.Printf("Field %s does not exist or cannot be set", fieldName)
+    }
 }
 
 func (b *bootstrappedRaft) newRaftNode(ss *snap.Snapshotter, wal *wal.WAL, cl *membership.RaftCluster) *raftNode {
